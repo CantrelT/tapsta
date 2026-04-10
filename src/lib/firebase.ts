@@ -18,12 +18,12 @@ import {
 import type { Status, User, Poll, TapToReveal, EmojiType } from "./types";
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "demo-key",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "demo.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "tapsta-demo",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "tapsta-demo.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "123456789",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789:web:abc123",
+  apiKey: "AIzaSyCsUD1CNOEHeAZuAjsCM1qoLyhbDhJWxkQ",
+  authDomain: "tapsta-app-bed3f.firebaseapp.com",
+  projectId: "tapsta-app-bed3f",
+  storageBucket: "tapsta-app-bed3f.firebasestorage.app",
+  messagingSenderId: "178442014239",
+  appId: "1:178442014239:web:906be882b480a5cdc20f2a"
 };
 
 let app: FirebaseApp;
