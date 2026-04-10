@@ -1,21 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Tapsta",
   description: "Don't just watch. Tap it.",
   manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "Tapsta",
-  },
 };
 
 export const viewport: Viewport = {
@@ -33,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className={`${geistSans.variable} antialiased bg-black text-white overflow-hidden`}>
+      <body className="antialiased bg-black text-white overflow-hidden">
         {children}
       </body>
     </html>
