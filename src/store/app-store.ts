@@ -1,42 +1,21 @@
 "use client";
 
-// Simple store with Firebase support
+// Simple store - mock data only for now
 import { MOCK_STATUSES, MOCK_CURRENT_USER } from "@/lib/mock-data";
 import type { Status, User, EmojiType, TapData } from "@/lib/types";
 import { MAX_TAPS_PER_USER } from "@/lib/types";
-import { 
-  initFirebase, 
-  getStatusesFromDb,
-  createStatusInDb,
-  addTapToDb,
-  votePollInDb,
-  setReactionInDb
-} from "@/lib/firebase";
 
 let currentUser: User | null = null;
 let isAuthenticated = false;
-let firebaseReady = false;
 
 const tapStore: Record<string, Record<string, TapData>> = {};
 const reactionStore: Record<string, Record<string, EmojiType>> = {};
 const pollVoteStore: Record<string, Record<string, string>> = {};
 const viewedStatuses = new Set<string>();
 
-async function initFb() {
-  if (firebaseReady) return;
-  firebaseReady = await initFirebase();
-}
-
 export async function loadStatuses(): Promise<Status[]> {
-  await initFb();
-  if (firebaseReady) {
-    try {
-      const statuses = await getStatusesFromDb();
-      if (statuses && statuses.length > 0) return statuses;
-    } catch (e) {
-      console.log("Using mock data");
-    }
-  }
+  // Simulate brief network delay
+  await new Promise(r => setTimeout(r, 500));
   const now = Date.now();
   return MOCK_STATUSES.filter((s) => s.expiresAt > now);
 }
@@ -77,16 +56,7 @@ export function getTotalTaps(statusId: string): number {
 }
 
 export async function addTap(statusId: string, userId: string): Promise<number> {
-  await initFb();
-  
-  if (firebaseReady) {
-    const count = await addTapToDb(statusId, userId);
-    if (count !== null) {
-      if (!tapStore[statusId]) tapStore[statusId] = {};
-      tapStore[statusId][userId] = { tapCount: count, lastTappedAt: Date.now() };
-      return count;
-    }
-  }
+  await new Promise(r => setTimeout(r, 50));
   
   if (!tapStore[statusId]) tapStore[statusId] = {};
   const current = tapStore[statusId][userId] ?? { tapCount: 0, lastTappedAt: 0 };
@@ -111,11 +81,7 @@ export function getReactionCounts(statusId: string): Record<EmojiType, number> {
 }
 
 export async function setReaction(statusId: string, userId: string, emoji: EmojiType): Promise<void> {
-  await initFb();
-  
-  if (firebaseReady) {
-    await setReactionInDb(statusId, userId, emoji);
-  }
+  await new Promise(r => setTimeout(r, 50));
   
   if (!reactionStore[statusId]) reactionStore[statusId] = {};
   reactionStore[statusId][userId] = emoji;
@@ -126,11 +92,7 @@ export function getPollVote(statusId: string, userId: string): string | null {
 }
 
 export async function castPollVote(statusId: string, userId: string, option: string): Promise<void> {
-  await initFb();
-  
-  if (firebaseReady) {
-    await votePollInDb(statusId, userId, option);
-  }
+  await new Promise(r => setTimeout(r, 50));
   
   if (pollVoteStore[statusId]?.[userId]) return;
   if (!pollVoteStore[statusId]) pollVoteStore[statusId] = {};
