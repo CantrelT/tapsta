@@ -1,36 +1,47 @@
 "use client";
 
-// Firebase initialization - only runs on client
+// Firebase initialization with timeout
 import type { Status, EmojiType } from "./types";
 
 let firebaseReady = false;
+let initPromise: Promise<boolean> | null = null;
 
 async function loadFirebase() {
   if (firebaseReady) return true;
+  if (initPromise) return initPromise;
   
-  try {
-    const { initializeApp, getApps } = await import("firebase/app");
-    const { getFirestore } = await import("firebase/firestore");
-    
-    const firebaseConfig = {
-      apiKey: "AIzaSyCsUD1CNOEHeAZuAjsCM1qoLyhbDhJWxkQ",
-      authDomain: "tapsta-app-bed3f.firebaseapp.com",
-      projectId: "tapsta-app-bed3f",
-      storageBucket: "tapsta-app-bed3f.firebasestorage.app",
-      messagingSenderId: "178442014239",
-      appId: "1:178442014239:web:906be882b480a5cdc20f2a"
-    };
+  initPromise = (async () => {
+    try {
+      const { initializeApp, getApps } = await import("firebase/app");
+      const { getFirestore } = await import("firebase/firestore");
+      
+      const firebaseConfig = {
+        apiKey: "AIzaSyCsUD1CNOEHeAZuAjsCM1qoLyhbDhJWxkQ",
+        authDomain: "tapsta-app-bed3f.firebaseapp.com",
+        projectId: "tapsta-app-bed3f",
+        storageBucket: "tapsta-app-bed3f.firebasestorage.app",
+        messagingSenderId: "178442014239",
+        appId: "1:178442014239:web:906be882b480a5cdc20f2a"
+      };
 
-    if (!getApps().length) {
-      initializeApp(firebaseConfig);
+      if (!getApps().length) {
+        initializeApp(firebaseConfig);
+      }
+      getFirestore();
+      firebaseReady = true;
+      return true;
+    } catch (e) {
+      console.log("Firebase load failed:", e);
+      return false;
     }
-    getFirestore();
-    firebaseReady = true;
-    return true;
-  } catch (e) {
-    console.log("Firebase not available, using mock data");
-    return false;
-  }
+  })();
+  
+  // Add timeout
+  const timeout = new Promise<boolean>((resolve) => 
+    setTimeout(() => resolve(false), 3000)
+  );
+  
+  return Promise.race([initPromise, timeout]);
 }
 
 export async function initFirebase(): Promise<boolean> {
@@ -38,16 +49,20 @@ export async function initFirebase(): Promise<boolean> {
 }
 
 export async function getStatusesFromDb(): Promise<Status[] | null> {
-  const ready = await loadFirebase();
+  const ready = await Promise.race([
+    loadFirebase(),
+    new Promise<boolean>((r) => setTimeout(() => r(false), 3000))
+  ]);
+  
   if (!ready) return null;
   
   try {
     const { getFirestore, collection, query, orderBy, limit, getDocs } = await import("firebase/firestore");
-    const { getDocs: getDocsFunc } = await import("firebase/firestore");
-    
     const db = getFirestore();
     const q = query(collection(db, "statuses"), orderBy("createdAt", "desc"), limit(50));
     const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) return null;
     
     return snapshot.docs.map((doc) => {
       const data = doc.data();
@@ -87,7 +102,6 @@ export async function createStatusInDb(status: Omit<Status, "id">): Promise<stri
     });
     return docRef.id;
   } catch (e) {
-    console.log("Error creating status:", e);
     return null;
   }
 }
