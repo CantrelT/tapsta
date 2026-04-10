@@ -6,11 +6,11 @@ import type { Status, User, EmojiType, TapData } from "@/lib/types";
 import { MAX_TAPS_PER_USER } from "@/lib/types";
 import { 
   initFirebase, 
-  getStatuses as fbGetStatuses,
-  createStatus as fbCreateStatus,
-  addTap as fbAddTap,
-  votePoll as fbVotePoll,
-  setReaction as fbSetReaction
+  getStatusesFromDb,
+  createStatusInDb,
+  addTapToDb,
+  votePollInDb,
+  setReactionInDb
 } from "@/lib/firebase";
 
 let currentUser: User | null = null;
@@ -22,22 +22,17 @@ const reactionStore: Record<string, Record<string, EmojiType>> = {};
 const pollVoteStore: Record<string, Record<string, string>> = {};
 const viewedStatuses = new Set<string>();
 
-function initFb() {
+async function initFb() {
   if (firebaseReady) return;
-  try {
-    initFirebase();
-    firebaseReady = true;
-  } catch (e) {
-    console.log("Firebase not configured, using mock data");
-  }
+  firebaseReady = await initFirebase();
 }
 
 export async function loadStatuses(): Promise<Status[]> {
-  initFb();
+  await initFb();
   if (firebaseReady) {
     try {
-      const statuses = await fbGetStatuses();
-      if (statuses.length > 0) return statuses;
+      const statuses = await getStatusesFromDb();
+      if (statuses && statuses.length > 0) return statuses;
     } catch (e) {
       console.log("Using mock data");
     }
@@ -82,16 +77,14 @@ export function getTotalTaps(statusId: string): number {
 }
 
 export async function addTap(statusId: string, userId: string): Promise<number> {
-  initFb();
+  await initFb();
   
   if (firebaseReady) {
-    try {
-      const count = await fbAddTap(statusId, userId);
+    const count = await addTapToDb(statusId, userId);
+    if (count !== null) {
       if (!tapStore[statusId]) tapStore[statusId] = {};
       tapStore[statusId][userId] = { tapCount: count, lastTappedAt: Date.now() };
       return count;
-    } catch (e) {
-      console.log("Firebase tap failed, using local");
     }
   }
   
@@ -118,12 +111,10 @@ export function getReactionCounts(statusId: string): Record<EmojiType, number> {
 }
 
 export async function setReaction(statusId: string, userId: string, emoji: EmojiType): Promise<void> {
-  initFb();
+  await initFb();
   
   if (firebaseReady) {
-    try {
-      await fbSetReaction(statusId, userId, emoji);
-    } catch (e) {}
+    await setReactionInDb(statusId, userId, emoji);
   }
   
   if (!reactionStore[statusId]) reactionStore[statusId] = {};
@@ -135,12 +126,10 @@ export function getPollVote(statusId: string, userId: string): string | null {
 }
 
 export async function castPollVote(statusId: string, userId: string, option: string): Promise<void> {
-  initFb();
+  await initFb();
   
   if (firebaseReady) {
-    try {
-      await fbVotePoll(statusId, userId, option);
-    } catch (e) {}
+    await votePollInDb(statusId, userId, option);
   }
   
   if (pollVoteStore[statusId]?.[userId]) return;
