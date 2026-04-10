@@ -7,10 +7,11 @@ import { SplashScreen } from "@/components/screens/SplashScreen";
 import { AuthScreen } from "@/components/screens/AuthScreen";
 import { PostScreen } from "@/components/screens/PostScreen";
 import { AnalyticsScreen } from "@/components/screens/AnalyticsScreen";
+import ProfileScreen from "@/components/screens/ProfileScreen";
 import { HomeFeed } from "@/components/feed/HomeFeed";
 import { BottomNav } from "@/components/ui/BottomNav";
 
-type Screen = "feed" | "post" | "analytics";
+type Screen = "feed" | "post" | "analytics" | "profile";
 type AppState = "splash" | "auth" | "app";
 
 export default function Home() {
@@ -55,6 +56,9 @@ export default function Home() {
         <div className="flex-1 overflow-y-auto">
           <AnalyticsScreen currentUser={currentUser} statuses={statuses} />
         </div>
+      )}
+      {activeScreen === "profile" && (
+        <ProfileScreen user={currentUser} />
       )}
       <BottomNav active={activeScreen} onChange={setActiveScreen} />
     </div>

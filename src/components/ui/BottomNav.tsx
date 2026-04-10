@@ -1,6 +1,6 @@
 "use client";
 
-type Screen = "feed" | "post" | "analytics";
+type Screen = "feed" | "post" | "analytics" | "profile";
 
 interface BottomNavProps {
   active: Screen;
@@ -11,6 +11,7 @@ const NAV_ITEMS: Array<{ id: Screen; icon: string; label: string }> = [
   { id: "feed", icon: "⚡", label: "Feed" },
   { id: "post", icon: "＋", label: "Post" },
   { id: "analytics", icon: "📊", label: "Stats" },
+  { id: "profile", icon: "👤", label: "Profile" },
 ];
 
 export function BottomNav({ active, onChange }: BottomNavProps) {
@@ -23,7 +24,7 @@ export function BottomNav({ active, onChange }: BottomNavProps) {
             <button
               key={item.id}
               onClick={() => onChange(item.id)}
-              className={`flex flex-col items-center gap-0.5 py-3 px-6 transition-all ${
+              className={`flex flex-col items-center gap-0.5 py-3 px-4 transition-all ${
                 isActive ? "opacity-100" : "opacity-40"
               }`}
             >
