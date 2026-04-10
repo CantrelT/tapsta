@@ -1,27 +1,50 @@
 "use client";
 
-// Simple in-memory store for Tapsta MVP
-// Replace with Firebase/Zustand in production
-
-import { MOCK_CURRENT_USER, MOCK_STATUSES } from "@/lib/mock-data";
+// Simple store with Firebase support
+import { MOCK_STATUSES, MOCK_CURRENT_USER } from "@/lib/mock-data";
 import type { Status, User, EmojiType, TapData } from "@/lib/types";
 import { MAX_TAPS_PER_USER } from "@/lib/types";
+import { 
+  initFirebase, 
+  getStatuses as fbGetStatuses,
+  createStatus as fbCreateStatus,
+  addTap as fbAddTap,
+  votePoll as fbVotePoll,
+  setReaction as fbSetReaction
+} from "@/lib/firebase";
 
-// App state (in-memory, would be Firebase in prod)
 let currentUser: User | null = null;
 let isAuthenticated = false;
+let firebaseReady = false;
 
-// Tap counts: statusId -> userId -> TapData
 const tapStore: Record<string, Record<string, TapData>> = {};
-
-// Reactions: statusId -> userId -> emoji
 const reactionStore: Record<string, Record<string, EmojiType>> = {};
-
-// Poll votes: statusId -> userId -> option
 const pollVoteStore: Record<string, Record<string, string>> = {};
-
-// Viewed statuses: Set of statusId
 const viewedStatuses = new Set<string>();
+
+function initFb() {
+  if (firebaseReady) return;
+  try {
+    initFirebase();
+    firebaseReady = true;
+  } catch (e) {
+    console.log("Firebase not configured, using mock data");
+  }
+}
+
+export async function loadStatuses(): Promise<Status[]> {
+  initFb();
+  if (firebaseReady) {
+    try {
+      const statuses = await fbGetStatuses();
+      if (statuses.length > 0) return statuses;
+    } catch (e) {
+      console.log("Using mock data");
+    }
+  }
+  const now = Date.now();
+  return MOCK_STATUSES.filter((s) => s.expiresAt > now);
+}
 
 export function getStatuses(): Status[] {
   const now = Date.now();
@@ -33,7 +56,6 @@ export function getCurrentUser(): User | null {
 }
 
 export function login(phone: string): User {
-  // Mock login — in prod, use Firebase Phone Auth
   const user = { ...MOCK_CURRENT_USER, phone };
   currentUser = user;
   isAuthenticated = true;
@@ -59,7 +81,20 @@ export function getTotalTaps(statusId: string): number {
   return Object.values(statusTaps).reduce((sum, t) => sum + t.tapCount, 0);
 }
 
-export function addTap(statusId: string, userId: string): number {
+export async function addTap(statusId: string, userId: string): Promise<number> {
+  initFb();
+  
+  if (firebaseReady) {
+    try {
+      const count = await fbAddTap(statusId, userId);
+      if (!tapStore[statusId]) tapStore[statusId] = {};
+      tapStore[statusId][userId] = { tapCount: count, lastTappedAt: Date.now() };
+      return count;
+    } catch (e) {
+      console.log("Firebase tap failed, using local");
+    }
+  }
+  
   if (!tapStore[statusId]) tapStore[statusId] = {};
   const current = tapStore[statusId][userId] ?? { tapCount: 0, lastTappedAt: 0 };
   if (current.tapCount >= MAX_TAPS_PER_USER) return current.tapCount;
@@ -82,7 +117,15 @@ export function getReactionCounts(statusId: string): Record<EmojiType, number> {
   return counts;
 }
 
-export function setReaction(statusId: string, userId: string, emoji: EmojiType): void {
+export async function setReaction(statusId: string, userId: string, emoji: EmojiType): Promise<void> {
+  initFb();
+  
+  if (firebaseReady) {
+    try {
+      await fbSetReaction(statusId, userId, emoji);
+    } catch (e) {}
+  }
+  
   if (!reactionStore[statusId]) reactionStore[statusId] = {};
   reactionStore[statusId][userId] = emoji;
 }
@@ -91,12 +134,19 @@ export function getPollVote(statusId: string, userId: string): string | null {
   return pollVoteStore[statusId]?.[userId] ?? null;
 }
 
-export function castPollVote(statusId: string, userId: string, option: string): void {
-  if (pollVoteStore[statusId]?.[userId]) return; // already voted
+export async function castPollVote(statusId: string, userId: string, option: string): Promise<void> {
+  initFb();
+  
+  if (firebaseReady) {
+    try {
+      await fbVotePoll(statusId, userId, option);
+    } catch (e) {}
+  }
+  
+  if (pollVoteStore[statusId]?.[userId]) return;
   if (!pollVoteStore[statusId]) pollVoteStore[statusId] = {};
   pollVoteStore[statusId][userId] = option;
 
-  // Update in-memory status votes
   const status = MOCK_STATUSES.find((s) => s.id === statusId);
   if (status?.poll) {
     status.poll.votes[option] = (status.poll.votes[option] ?? 0) + 1;

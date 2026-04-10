@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { User, Status } from "@/lib/types";
-import { getStatuses } from "@/store/app-store";
+import { loadStatuses, getStatuses } from "@/store/app-store";
 import { SplashScreen } from "@/components/screens/SplashScreen";
 import { AuthScreen } from "@/components/screens/AuthScreen";
 import { PostScreen } from "@/components/screens/PostScreen";
@@ -18,7 +18,15 @@ export default function Home() {
   const [appState, setAppState] = useState<AppState>("splash");
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeScreen, setActiveScreen] = useState<Screen>("feed");
-  const [statuses, setStatuses] = useState<Status[]>(() => getStatuses());
+  const [statuses, setStatuses] = useState<Status[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadStatuses().then((data) => {
+      setStatuses(data);
+      setLoading(false);
+    });
+  }, []);
 
   const handleSplashDone = useCallback(() => {
     setAppState("auth");
@@ -40,6 +48,14 @@ export default function Home() {
 
   if (appState === "auth" || !currentUser) {
     return <AuthScreen onAuth={handleAuth} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="text-white/50">Loading...</div>
+      </div>
+    );
   }
 
   return (
